@@ -1,5 +1,4 @@
 class WorkTimeController < ApplicationController
-  unloadable
   #  before_filter :find_project, :authorize
   accept_api_auth :relay_total
 
