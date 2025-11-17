@@ -5,6 +5,7 @@ on:
       - "*"
 permissions:
   contents: write
+  discussions: write
 jobs:
   github:
     name: GitHub
