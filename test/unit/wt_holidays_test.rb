@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + '/../test_helper'
 
-class WtHolidaysTest < Test::Unit::TestCase
-  fixtures :wt_holidays
+class WtHolidaysTest < ActiveSupport::TestCase
+  plugin_fixtures :wt_holidays
 
   # Replace this with your real tests.
   def test_truth
