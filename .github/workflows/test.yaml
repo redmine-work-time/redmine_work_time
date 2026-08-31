@@ -1,0 +1,71 @@
+name: Test
+on:
+  push:
+    branches-ignore:
+      - "copilot/**"
+      - "dependabot/**"
+  pull_request:
+
+jobs:
+  test:
+    name: Redmine ${{ matrix.redmine-version }} & Ruby ${{ matrix.ruby-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RAILS_ENV: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - redmine-version: "6.0"
+            ruby-version: "3.3"
+          - redmine-version: "6.1"
+            ruby-version: "3.4"
+          - redmine-version: "7.0"
+            ruby-version: "4.0"
+          - redmine-version: "master"
+            ruby-version: "4.0"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup environment variables
+        run: |
+          case "${{ matrix.redmine-version }}" in
+            master)
+              echo "REDMINE_BRANCH=master" >> ${GITHUB_ENV}
+              ;;
+            *)
+              echo "REDMINE_BRANCH=${{ matrix.redmine-version }}-stable" >> \
+                ${GITHUB_ENV}
+              ;;
+          esac
+      - name: Prepare Redmine
+        run: |
+          cd ..
+          git clone \
+            --depth 1 \
+            --branch "${REDMINE_BRANCH}" \
+            https://github.com/redmine/redmine.git
+          cd redmine/plugins
+          ln -s ../../redmine_work_time ./
+          cd ../
+          cat <<DATABASE_YML > config/database.yml
+          test:
+            adapter: sqlite3
+            database: db/redmine.test.sqlite3
+          DATABASE_YML
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - name: Install
+        run: |
+          cd ../redmine
+          bundle install
+          bin/rails db:create
+          bin/rails generate_secret_token
+          bin/rails db:migrate
+          bin/rails redmine:plugins:migrate
+          REDMINE_LANG=en bin/rails redmine:load_default_data
+      - name: Test
+        run: |
+          cd ../redmine
+          bin/rails redmine:plugins:test NAME=redmine_work_time

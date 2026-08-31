@@ -3,11 +3,9 @@ one:
   id: 1
   uid: 1
   issue: 1
-  month: MyString
   odr: 1
 two:
   id: 2
   uid: 1
   issue: 1
-  month: MyString
   odr: 1
