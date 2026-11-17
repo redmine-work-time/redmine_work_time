@@ -71,12 +71,12 @@ class WorkTimeController < ApplicationController
           next if issue_pack[:count_hours] == 0
           issue = issue_pack[:issue]
           if issue_pack[:total_by_day][date] then
-            csv_data << %Q|"#{@this_user}","#{date}","#{issue.project}","##{issue.id} #{issue.subject}",#{issue_pack[:total_by_day][date]}\n|
+            csv_data << %Q|"#{@this_user}","#{date}","#{issue.project}","##{issue.id} #{issue.subject}",#{format_csv_hours(issue_pack[:total_by_day][date])}\n|
           end
         end
       end
       if @month_pack[:other_by_day].has_key?(date) then
-        csv_data << %Q|"#{@this_user}","#{date}","PRIVATE","PRIVATE",#{@month_pack[:other_by_day][date]}\n|
+        csv_data << %Q|"#{@this_user}","#{date}","PRIVATE","PRIVATE",#{format_csv_hours(@month_pack[:other_by_day][date])}\n|
       end
     end
     send_data Redmine::CodesetUtil.from_utf8(csv_data, l(:general_csv_encoding)), :type=>"text/csv", :filename=>"member_monthly.csv"
@@ -106,7 +106,7 @@ class WorkTimeController < ApplicationController
         
         (@first_date..@last_date).each do |date|
           if issue_pack[:total_by_day].has_key?(date) then
-            csv_data << %Q|,"#{issue_pack[:total_by_day][date]}"|
+            csv_data << %Q|,"#{format_csv_hours(issue_pack[:total_by_day][date])}"|
           else
             csv_data << %Q|,""|
           end
@@ -177,11 +177,11 @@ class WorkTimeController < ApplicationController
           next if parent_issue.nil? # チケットが削除されていたらパス
 
           csv_data << %Q|"#{user}","#{parent_issue.project}","##{parent_issue.id} #{parent_issue.subject}",|
-          csv_data << %Q|"#{prj}","##{issue.id} #{issue.subject}",#{@issue_cost[issue_id][user.id]}\n|
+          csv_data << %Q|"#{prj}","##{issue.id} #{issue.subject}",#{format_csv_hours(@issue_cost[issue_id][user.id])}\n|
         end
       end
       if @issue_cost.has_key?(-1) && @issue_cost[-1].has_key?(user.id) then
-        csv_data << %Q|"#{user}","private","private","private","private",#{@issue_cost[-1][user.id]}\n|
+        csv_data << %Q|"#{user}","private","private","private","private",#{format_csv_hours(@issue_cost[-1][user.id])}\n|
       end
     end
     send_data Redmine::CodesetUtil.from_utf8(csv_data, l(:general_csv_encoding)), :type=>"text/csv", :filename=>"monthly_report_raw.csv"
@@ -215,11 +215,11 @@ class WorkTimeController < ApplicationController
             unless act.nil?
               csv_data << %Q|"#{user}","#{parent_issue.project}","##{parent_issue.id} #{parent_issue.subject}",|
               csv_data << %Q|"#{prj}","##{issue.id} #{issue.subject}","#{act.name}",|
-              csv_data << %Q|#{cost}\n|
+              csv_data << %Q|#{format_csv_hours(cost)}\n|
             else # can not find activity
               csv_data << %Q|"#{user}","#{parent_issue.project}","##{parent_issue.id} #{parent_issue.subject}",|
               csv_data << %Q|"#{prj}","##{issue.id} #{issue.subject}","nil",|
-              csv_data << %Q|#{cost}\n|
+              csv_data << %Q|#{format_csv_hours(cost)}\n|
             end
           end
         end
@@ -228,7 +228,7 @@ class WorkTimeController < ApplicationController
           user = User.find_by_id(user_id)
           act_cost.each do |act_id, cost|
             csv_data << %Q|"#{user}","private","private","private","private","private",|
-            csv_data << %Q|#{cost}\n|
+            csv_data << %Q|#{format_csv_hours(cost)}\n|
           end
         end
       end
@@ -308,11 +308,11 @@ class WorkTimeController < ApplicationController
           next if issue.nil? # チケットが削除されていたらパス
           next if issue.project_id != dsp_prj # このプロジェクトに表示するチケットでない場合はパス
 
-          csv_data << %Q|"#{user}","#{prj}","##{issue.id} #{issue.subject}",#{@r_issue_cost[issue_id][user.id]}\n|
+          csv_data << %Q|"#{user}","#{prj}","##{issue.id} #{issue.subject}",#{format_csv_hours(@r_issue_cost[issue_id][user.id])}\n|
         end
       end
       if @r_issue_cost.has_key?(-1) && @r_issue_cost[-1].has_key?(user.id) then
-        csv_data << %Q|"#{user}","private","private",#{@r_issue_cost[-1][user.id]}\n|
+        csv_data << %Q|"#{user}","private","private",#{format_csv_hours(@r_issue_cost[-1][user.id])}\n|
       end
     end
     send_data Redmine::CodesetUtil.from_utf8(csv_data, l(:general_csv_encoding)), :type=>"text/csv", :filename=>"monthly_report.csv"
@@ -341,10 +341,10 @@ class WorkTimeController < ApplicationController
             act = TimeEntryActivity.find_by_id(act_id)
             unless act.nil?
               csv_data << %Q|"#{user}","#{prj}","##{issue.id} #{issue.subject}",|
-              csv_data << %Q|"#{act.name}",#{cost}\n|
+              csv_data << %Q|"#{act.name}",#{format_csv_hours(cost)}\n|
             else # can not find activity
               csv_data << %Q|"#{user}","#{prj}","##{issue.id} #{issue.subject}",|
-              csv_data << %Q|"nil",#{cost}\n|
+              csv_data << %Q|"nil",#{format_csv_hours(cost)}\n|
             end
           end
         end
@@ -353,7 +353,7 @@ class WorkTimeController < ApplicationController
           user = User.find_by_id(user_id)
           act_cost.each do |act_id, cost|
             csv_data << %Q|"#{user}","private","private",|
-            csv_data << %Q|"private",#{cost}\n|
+            csv_data << %Q|"private",#{format_csv_hours(cost)}\n|
           end
         end
       end
@@ -1457,6 +1457,12 @@ private
       end
     end
     update
+  end
+
+  # Ensure hours are formatted as decimal string.
+  # Avoids using the Rational#to_s conversion.
+  def format_csv_hours(hours)
+    '%.2f' % hours
   end
 
 end

@@ -11,3 +11,15 @@ module PluginFixturesClassMethods
 end
 
 ActiveSupport::TestCase.extend(PluginFixturesClassMethods)
+
+# Common setup for integration tests of the relay total pages.
+module WorkTimeRelayTotalTestSetup
+  def setup
+    super
+    Project.find(1).enable_module!(:work_time)
+    Role.find(1).add_permission!(:view_work_time_tab)
+    WtMemberOrder.delete_all
+    WtTicketRelay.delete_all
+    WtProjectOrders.delete_all
+  end
+end
